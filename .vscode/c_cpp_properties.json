@@ -1,0 +1,30 @@
+{
+  "configurations": [
+    {
+      "name": "N64",
+      "browse": {
+        "path": [
+          "/usr/src/PR/nusys-2.07",
+          "/usr/src/PR/libsrc/nustd/"
+        ]
+      },
+      "includePath": [
+        "${workspaceFolder}/**",
+        "/usr/include/n64/nusys",
+        "/usr/include/n64/nustd",
+        "/usr/include/n64",
+        "${env:ROOT}/usr/include/PR"
+      ],
+      "defines": [
+        "_LANGUAGE_C",
+        "_ULTRA64",
+        "__EXTENSIONS__"
+      ],
+      "compilerPath": "/usr/local/n64chain/bin/mips64-elf-gcc",
+      "cStandard": "c11",
+      "cppStandard": "c++17",
+      "intelliSenseMode": "gcc-x64"
+    }
+  ],
+  "version": 4
+}
