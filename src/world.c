@@ -70,6 +70,8 @@ void World_render(World *world)
 
 static void handleGameObjectCollision(World *world)
 {
+    if (!world->gameObjects.length)
+        return;
     // collision enter
     for (size_t i = 0; i < world->gameObjects.length - 1; i++)
     {

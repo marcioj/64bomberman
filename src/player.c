@@ -26,9 +26,9 @@ static void restartStage(Animation *animation)
     Block_generateRandom();
     Enemy_generateRandom();
     player = Player_new();
-    // player->gameObject->x = TILE_SIZE;
-    // player->gameObject->y = TILE_SIZE;
-    // player->gameObject->currentAnimationIndex = 1;
+    player->gameObject->x = TILE_SIZE;
+    player->gameObject->y = TILE_SIZE;
+    player->gameObject->currentAnimationIndex = 1;
     World_addGameObject(world, player->gameObject);
 }
 
@@ -41,7 +41,7 @@ static void killPlayer(Player *player)
     animation->onFinish = restartStage;
 }
 
-void Player_handleCollisionEnter(GameObject *self, GameObject *collided)
+static void Player_handleCollisionEnter(GameObject *self, GameObject *collided)
 {
     Player *player = (Player *)self->data;
     if (collided->type == GAME_OBJECT_BOMB)
@@ -68,7 +68,7 @@ void Player_handleCollisionEnter(GameObject *self, GameObject *collided)
     }
 }
 
-void Player_handleCollisionExit(GameObject *self, GameObject *collided)
+static void Player_handleCollisionExit(GameObject *self, GameObject *collided)
 {
     if (collided->type == GAME_OBJECT_BOMB)
     {
@@ -79,10 +79,10 @@ void Player_handleCollisionExit(GameObject *self, GameObject *collided)
     }
 }
 
-void Player_render(GameObject *gameObject)
+static void Player_render(GameObject *gameObject)
 {
     Animation *currentAnimation = &gameObject->animations[gameObject->currentAnimationIndex];
-    Animation_render(currentAnimation, camera.targetScreenX, camera.targetScreenY);
+    Animation_render(currentAnimation, camera.targetScreenX, camera.targetScreenY + SCREEN_TOP_OFFSET);
 }
 
 static void decreaseActiveBombs(Bomb *bomb)
@@ -90,7 +90,7 @@ static void decreaseActiveBombs(Bomb *bomb)
     bomb->player->activeBombs--;
 }
 
-void Player_update(GameObject *gameObject, float dt)
+static void Player_update(GameObject *gameObject, float dt)
 {
     Controller_update();
     Player *player = (Player *)gameObject->data;
@@ -161,43 +161,94 @@ Player *Player_new()
     player->maxActiveBombs = 3;
     obj->data = player;
 
-    int animationsSize = 5;
-    Animation *animations = malloc(sizeof(Animation) * animationsSize);
-    for (size_t i = 0; i < animationsSize; i++)
+    int animationsCount = 5;
+    Animation *animations = malloc(sizeof(Animation) * animationsCount);
+    AnimationStep *steps = NULL;
+    Tile *tiles = NULL;
+    for (size_t i = 0; i < animationsCount; i++)
     {
         Animation_init(animations + i);
-        animations[i].texture = spritesheet;
-        animations[i].speed = 0.1f;
+        animations[i].iterationCount = -1;
+        animations[i].automatic = false;
     }
 
     // move left
-    animations[0].spriteCol = 0;
-    animations[0].spriteRow = 0,
-    animations[0].steps = 3;
+    steps = malloc(sizeof(AnimationStep) * 3);
+    tiles = malloc(sizeof(Tile) * 3);
+    for (size_t i = 0; i < 3; i++)
+    {
+        tiles[i].row = 0;
+        tiles[i].col = i;
+        tiles[i].sheet = spritesheet;
+        steps[i].timeMs = 0.1f;
+        steps[i].tile = &tiles[i];
+        steps[i].texture = NULL;
+    }
+    animations[0].steps = steps;
+    animations[0].stepsCount = 3;
     animations[0].defaultStep = 1;
     // move down
-    animations[1].spriteCol = 3;
-    animations[1].spriteRow = 0;
-    animations[1].steps = 3;
+    steps = malloc(sizeof(AnimationStep) * 3);
+    tiles = malloc(sizeof(Tile) * 3);
+    for (size_t i = 0; i < 3; i++)
+    {
+        tiles[i].row = 0;
+        tiles[i].col = i + 3;
+        tiles[i].sheet = spritesheet;
+        steps[i].timeMs = 0.1f;
+        steps[i].tile = &tiles[i];
+        steps[i].texture = NULL;
+    }
+    animations[1].steps = steps;
+    animations[1].stepsCount = 3;
     animations[1].defaultStep = 1;
     // move right
-    animations[2].spriteCol = 0;
-    animations[2].spriteRow = 1;
-    animations[2].steps = 3;
+    steps = malloc(sizeof(AnimationStep) * 3);
+    tiles = malloc(sizeof(Tile) * 3);
+    for (size_t i = 0; i < 3; i++)
+    {
+        tiles[i].row = 1;
+        tiles[i].col = i;
+        tiles[i].sheet = spritesheet;
+        steps[i].timeMs = 0.1f;
+        steps[i].tile = &tiles[i];
+        steps[i].texture = NULL;
+    }
+    animations[2].steps = steps;
+    animations[2].stepsCount = 3;
     animations[2].defaultStep = 1;
     // move up
-    animations[3].spriteCol = 3;
-    animations[3].spriteRow = 1;
-    animations[3].steps = 3;
+    steps = malloc(sizeof(AnimationStep) * 3);
+    tiles = malloc(sizeof(Tile) * 3);
+    for (size_t i = 0; i < 3; i++)
+    {
+        tiles[i].row = 1;
+        tiles[i].col = i + 3;
+        tiles[i].sheet = spritesheet;
+        steps[i].timeMs = 0.1f;
+        steps[i].tile = &tiles[i];
+        steps[i].texture = NULL;
+    }
+    animations[3].steps = steps;
+    animations[3].stepsCount = 3;
     animations[3].defaultStep = 1;
     // death
-    animations[4].spriteCol = 0;
-    animations[4].spriteRow = 2;
-    animations[4].steps = 7;
-    animations[4].speed = 0.3f;
+    steps = malloc(sizeof(AnimationStep) * 7);
+    tiles = malloc(sizeof(Tile) * 7);
+    for (size_t i = 0; i < 7; i++)
+    {
+        tiles[i].row = 2;
+        tiles[i].col = i;
+        tiles[i].sheet = spritesheet;
+        steps[i].timeMs = 0.3f;
+        steps[i].tile = &tiles[i];
+        steps[i].texture = NULL;
+    }
+    animations[4].steps = steps;
+    animations[4].stepsCount = 7;
     animations[4].defaultStep = -1;
-    animations[4].automatic = true;
     animations[4].iterationCount = 1;
+    animations[4].automatic = true;
 
     obj->type = GAME_OBJECT_PLAYER;
     obj->zIndex = 1;
@@ -205,6 +256,7 @@ Player *Player_new()
     obj->y = TILE_SIZE;
     obj->currentAnimationIndex = 1;
     obj->animations = animations;
+    obj->animationsCount = animationsCount;
     obj->render = Player_render;
     obj->update = Player_update;
     obj->onCollisionEnter = Player_handleCollisionEnter;

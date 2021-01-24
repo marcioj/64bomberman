@@ -2,9 +2,10 @@
 #define TEXTURES_H
 
 #include "texture.h"
+#include "sprite_sheet.h"
 
-extern TEXTURE *spritesheet;
-// extern TEXTURE *levelBg;
+extern SpriteSheet *spritesheet;
+extern Texture *levelBg;
 
 void Textures_init();
 

@@ -8,20 +8,22 @@
 #include "block.h"
 #include "grid.h"
 #include "textures.h"
+#include "camera.h"
 
 void removeExplosion(Animation *animation)
 {
     // is center explosion animation
-    if (animation == animation->gameObject->animations + 1)
+    GameObject *gameObject = (GameObject *)animation->caller;
+    if (animation == gameObject->animations + 1)
     {
-        Bomb *center = (Bomb *)animation->gameObject->data;
+        Bomb *center = (Bomb *)gameObject->data;
         if (center->starterBomb->onExplosionEnd)
         {
             center->starterBomb->onExplosionEnd(center->starterBomb);
             World_removeGameObject(world, center->starterBomb->gameObject);
         }
     }
-    World_removeGameObject(world, animation->gameObject);
+    World_removeGameObject(world, gameObject);
 }
 
 static bool addExplosion(Bomb *starter, float gridX, float gridY, int animationIndex)
@@ -99,6 +101,12 @@ void Bomb_handleCollisionEnter(GameObject *self, GameObject *collided)
     }
 }
 
+void Bomb_render(GameObject *gameObject)
+{
+    Animation *currentAnimation = &gameObject->animations[gameObject->currentAnimationIndex];
+    Animation_render(currentAnimation, gameObject->x - camera.bgPositionX, gameObject->y - camera.bgPositionY + SCREEN_TOP_OFFSET);
+}
+
 Bomb *Bomb_new()
 {
     Bomb *bomb = malloc(sizeof(Bomb));
@@ -113,26 +121,55 @@ Bomb *Bomb_new()
     obj->data = bomb;
     obj->type = GAME_OBJECT_BOMB;
     obj->update = Bomb_update;
+    obj->render = Bomb_render;
     obj->onCollisionEnter = Bomb_handleCollisionEnter;
-    int animationsSize = 8;
-    Animation *animations = malloc(sizeof(Animation) * animationsSize);
-    for (size_t i = 0; i < animationsSize; i++)
+
+    int animationsCount = 8;
+    Animation *animations = malloc(sizeof(Animation) * animationsCount);
+    AnimationStep *steps = NULL;
+    Tile *tiles = NULL;
+    for (size_t i = 0; i < animationsCount; i++)
     {
         Animation_init(animations + i);
-        animations[i].texture = spritesheet;
+        if (i > 0) // only create steps for explosions here
+        {
+            steps = malloc(sizeof(AnimationStep) * 4);
+            tiles = malloc(sizeof(Tile) * 4);
+            for (size_t j = 0; j < 4; j++)
+            {
+                tiles[j].row = i + 3;
+                tiles[j].col = j;
+                tiles[j].sheet = spritesheet;
+                steps[j].timeMs = 0.07f;
+                steps[j].tile = &tiles[j];
+                steps[j].texture = NULL;
+            }
+            animations[i].stepsCount = 4;
+        }
         animations[i].direction = ANIMATION_DIRECTION_ALTERNATE;
-        animations[i].speed = 0.07f;
-        animations[i].spriteRow = 3 + i;
-        animations[i].steps = 4;
-        animations[i].defaultStep = -1;
-        animations[i].automatic = true;
+        animations[i].steps = steps;
+        // animations[i].defaultStep = -1;
+        // animations[i].automatic = true;
     }
 
     // bomb
+    steps = malloc(sizeof(AnimationStep) * 3);
+    tiles = malloc(sizeof(Tile) * 3);
+    for (size_t i = 0; i < 3; i++)
+    {
+        tiles[i].row = 3;
+        tiles[i].col = i;
+        tiles[i].sheet = spritesheet;
+        steps[i].timeMs = 0.3f;
+        steps[i].tile = &tiles[i];
+        steps[i].texture = NULL;
+    }
     animations[0].direction = ANIMATION_DIRECTION_NORMAL;
-    animations[0].steps = 3;
+    animations[0].stepsCount = 3;
+    animations[0].steps = steps;
     animations[0].defaultStep = 0;
-    animations[0].speed = 0.3f;
+    animations[0].iterationCount = -1;
     obj->animations = animations;
+    obj->animationsCount = animationsCount;
     return bomb;
 }

@@ -10,21 +10,37 @@
 
 Animation *defaultAnimation;
 
+static void renderAnimation(GameObject *obj)
+{
+    Animation *currentAnimation = &obj->animations[obj->currentAnimationIndex];
+    Animation_render(currentAnimation, obj->x - camera.bgPositionX, obj->y - camera.bgPositionY + SCREEN_TOP_OFFSET);
+}
+
 Animation *createAnimation()
 {
     GameObject *gameObject = GameObject_new();
+    gameObject->render = renderAnimation;
     gameObject->zIndex = 2;
     Animation *animation = Animation_new();
-    gameObject->animations = animation;
-    animation->gameObject = gameObject;
-    animation->texture = spritesheet;
-    animation->speed = 0.07f;
-    animation->spriteCol = 4;
-    animation->spriteRow = 3;
-    animation->steps = 7;
+    AnimationStep *steps = malloc(sizeof(AnimationStep) * 7);
+    Tile *tiles = malloc(sizeof(Tile) * 7);
+    for (size_t i = 0; i < 7; i++)
+    {
+        tiles[i].row = 3;
+        tiles[i].col = i + 4;
+        tiles[i].sheet = spritesheet;
+        steps[i].timeMs = 0.07f;
+        steps[i].tile = &tiles[i];
+        steps[i].texture = NULL;
+    }
+    animation->steps = steps;
+    animation->stepsCount = 7;
     animation->defaultStep = 0;
     animation->iterationCount = 1;
     animation->automatic = true;
+    gameObject->animations = animation;
+    gameObject->animationsCount = 1;
+    animation->caller = gameObject;
     return animation;
 }
 
@@ -77,15 +93,15 @@ void Block_render()
             {
                 int x = Grid_gridToCoord(col);
                 int y = Grid_gridToCoord(row);
-                Animation_render(defaultAnimation, x - camera.bgPositionX, y - camera.bgPositionY);
+                Animation_render(defaultAnimation, x - camera.bgPositionX, y - camera.bgPositionY + SCREEN_TOP_OFFSET);
             }
         }
     }
 }
 
-static void removeAnimation(Animation *animation)
+static void removeGameObject(Animation *animation)
 {
-    World_removeGameObject(world, animation->gameObject);
+    World_removeGameObject(world, (GameObject *)animation->caller);
 }
 
 void Block_remove(float x, float y)
@@ -96,11 +112,10 @@ void Block_remove(float x, float y)
     {
         Grid_setCell(col, row, GRID_CELL_NONE);
         Animation *animation = createAnimation();
-        animation->gameObject->x = Grid_gridToCoord(col);
-        animation->gameObject->y = Grid_gridToCoord(row);
-        animation->active = true;
-        animation->defaultStep = -1;
-        animation->onFinish = removeAnimation;
-        World_addGameObject(world, animation->gameObject);
+        ((GameObject *)animation->caller)->x = Grid_gridToCoord(col);
+        ((GameObject *)animation->caller)->y = Grid_gridToCoord(row);
+        Animation_play(animation);
+        animation->onFinish = removeGameObject;
+        World_addGameObject(world, (GameObject *)animation->caller);
     }
 }

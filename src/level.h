@@ -4,8 +4,6 @@
 #include <stdbool.h>
 #include "game_object.h"
 
-void Level_init();
-
 int Level_getHeight();
 
 int Level_getWidth();

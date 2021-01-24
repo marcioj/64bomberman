@@ -1,13 +1,10 @@
 #include "game_object.h"
 #include <malloc.h>
-#include "camera.h"
 
 void GameObject_render(GameObject *gameObject)
 {
-    int x = gameObject->x - camera.bgPositionX;
-    int y = gameObject->y - camera.bgPositionY;
     Animation *currentAnimation = &gameObject->animations[gameObject->currentAnimationIndex];
-    Animation_render(currentAnimation, x, y);
+    Animation_render(currentAnimation, gameObject->x, gameObject->y);
 }
 
 GameObject *GameObject_new()
@@ -17,6 +14,7 @@ GameObject *GameObject_new()
     gameObject->data = NULL;
     gameObject->type = -1;
     gameObject->animations = NULL;
+    gameObject->animationsCount = 0;
     gameObject->render = GameObject_render;
     gameObject->update = NULL;
     gameObject->destroy = NULL;
@@ -38,6 +36,11 @@ void GameObject_destroy(GameObject *gameObject)
         gameObject->destroy(gameObject);
     if (gameObject->data)
         free(gameObject->data);
+    for (size_t i = 0; i < gameObject->animationsCount; i++)
+    {
+        Animation *animation = gameObject->animations + i;
+        free(animation->steps);
+    }
     if (gameObject->animations)
         free(gameObject->animations);
 
@@ -67,11 +70,16 @@ Animation *GameObject_playAnimation(GameObject *gameObject, int animationIndex)
 {
     if (gameObject->animations == NULL)
         return NULL;
-    Animation *prevAnimation = &gameObject->animations[gameObject->currentAnimationIndex];
-    prevAnimation->active = false;
+
+    if (gameObject->currentAnimationIndex != animationIndex)
+    {
+        Animation *prevAnimation = &gameObject->animations[gameObject->currentAnimationIndex];
+        Animation_reset(prevAnimation);
+    }
+
     gameObject->currentAnimationIndex = animationIndex;
     Animation *currentAnimation = &gameObject->animations[gameObject->currentAnimationIndex];
-    currentAnimation->gameObject = gameObject;
-    currentAnimation->active = true;
+    currentAnimation->caller = gameObject;
+    Animation_play(currentAnimation);
     return currentAnimation;
 }

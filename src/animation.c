@@ -1,8 +1,6 @@
 #include <string.h>
 #include <malloc.h>
 #include "animation.h"
-#include "constants.h"
-#include "texture.h"
 #include "screen_printf.h"
 
 Animation *Animation_new()
@@ -15,106 +13,69 @@ Animation *Animation_new()
 void Animation_init(Animation *animation)
 {
     animation->direction = ANIMATION_DIRECTION_NORMAL;
-    animation->spriteCol = 0;
-    animation->spriteRow = 0;
-    animation->steps = 1;
-    animation->defaultStep = 0;
-    animation->speed = 0.16f;
-    animation->automatic = false;
-    animation->iterationCount = -1; // infinity
-    animation->active = false;
+    animation->steps = NULL;
+    animation->stepsCount = 0;
+    animation->defaultStep = -1;
+    animation->iterationCount = 1;
+    animation->playing = false;
+    animation->automatic = true;
     animation->_timeElapsed = 0;
     animation->currentStep = 0;
     animation->onFinish = NULL;
     animation->_stepChangeRate = 1;
     animation->_prevStepChangeRate = 0;
-    animation->gameObject = NULL;
 }
 
 void Animation_reset(Animation *animation)
 {
-    animation->active = false;
+    animation->playing = false;
     animation->_timeElapsed = 0;
     animation->currentStep = 0;
     animation->onFinish = NULL;
     animation->_stepChangeRate = 1;
     animation->_prevStepChangeRate = 0;
-    animation->gameObject = NULL;
 }
 
-#ifdef _ULTRA64
-#include "graphic.h"
+void Animation_play(Animation *animation)
+{
+    animation->playing = true;
+}
 
 void Animation_render(Animation *animation, int x, int y)
 {
-    uObjBg *objBg = spritePtr++;
-    memcpy(objBg, animation->texture, sizeof(uObjBg));
-
-    int currentStep = animation->active ? animation->currentStep : animation->defaultStep;
-    if (currentStep == -1)
+    int currentStep = animation->playing ? animation->currentStep : animation->defaultStep;
+    if (currentStep == -1 || !animation->steps)
         return;
 
-    objBg->s.imageX = (int)((animation->spriteCol + currentStep) * TILE_SIZE) << 5;
-    objBg->s.imageY = (int)(animation->spriteRow * TILE_SIZE) << 5;
-    objBg->s.frameW = TILE_SIZE << 2;
-    objBg->s.frameH = TILE_SIZE << 2;
-    objBg->s.frameX = x << 2;
-    objBg->s.frameY = (SCREEN_TOP_OFFSET + y) << 2;
-    objBg->s.scaleW = (1 << 10);
-    objBg->s.scaleH = (1 << 10);
-
-    // prevent image underflow
-    if (objBg->s.frameX < -objBg->s.frameW || objBg->s.frameY < -objBg->s.frameH)
-        return;
-
-    gDPSetCycleType(displayListPtr++, G_CYC_1CYCLE);
-    gSPBgRect1Cyc(displayListPtr++, objBg);
-    gDPPipeSync(displayListPtr++);
-
-    osWritebackDCache(objBg, sizeof(uObjBg));
+    AnimationStep *step = animation->steps + currentStep;
+    if (step->texture)
+        Texture_render(step->texture, x, y);
+    if (step->tile)
+        Tile_render(step->tile, x, y);
 }
-#else
-void Animation_render(Animation *animation, int x, int y)
-{
-    int currentStep = animation->active ? animation->currentStep : animation->defaultStep;
-    if (currentStep == -1)
-        return;
-
-    SDL_Rect source = {
-        .h = TILE_SIZE,
-        .w = TILE_SIZE,
-        .x = (int)((animation->spriteCol + currentStep) * TILE_SIZE),
-        .y = (int)(animation->spriteRow * TILE_SIZE),
-    };
-    SDL_Rect dest = {
-        .h = source.h,
-        .w = source.w,
-        .x = x,
-        .y = SCREEN_TOP_OFFSET + y,
-    };
-
-    Texture_render(animation->texture, source, dest, 0);
-}
-#endif
 
 void Animation_update(Animation *animation, float dt)
 {
-    if (!animation->active)
+    if (!animation->playing || !animation->steps)
         return;
 
-    bool wasLastStep = animation->currentStep == animation->steps - 1;
+    if (!animation->automatic)
+        animation->playing = false;
+
+    AnimationStep *step = animation->steps + animation->currentStep;
+    bool wasLastStep = animation->currentStep == animation->stepsCount - 1;
     bool wasFirstStep = animation->currentStep == 0;
     bool stepChanged = false;
     animation->_timeElapsed += dt;
     // change currentStep when time passes
-    if (animation->_timeElapsed >= animation->speed)
+    if (animation->_timeElapsed >= step->timeMs)
     {
         animation->currentStep += animation->_stepChangeRate;
 
-        if (animation->currentStep == animation->steps)
+        if (animation->currentStep == animation->stepsCount)
             animation->currentStep = 0;
         else if (animation->currentStep == -1)
-            animation->currentStep = animation->steps - 1;
+            animation->currentStep = animation->stepsCount - 1;
 
         animation->_timeElapsed = 0;
         stepChanged = true;
@@ -122,12 +83,9 @@ void Animation_update(Animation *animation, float dt)
     wasLastStep &= stepChanged;
     wasFirstStep &= stepChanged;
 
-    if (!animation->automatic)
-        animation->active = false;
-
     bool hasFinishedIteration = false;
     bool isFirstStep = animation->currentStep == 0;
-    bool isLastStep = animation->currentStep == animation->steps - 1;
+    bool isLastStep = animation->currentStep == animation->stepsCount - 1;
 
     if (animation->direction == ANIMATION_DIRECTION_NORMAL)
     {

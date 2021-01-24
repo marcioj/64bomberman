@@ -19,6 +19,7 @@ typedef struct GameObject
     float prevY;
     int currentAnimationIndex;
     Animation *animations;
+    int animationsCount;
     void (*render)(GameObject *self);
     void (*update)(GameObject *self, float dt);
     void (*destroy)(GameObject *self);

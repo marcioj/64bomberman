@@ -5,15 +5,17 @@
 #include "constants.h"
 #include "clock.h"
 #include "world.h"
-#include "player.h"
-#include "camera.h"
 #include "level.h"
-#include <vec.h>
+#include "player.h"
 #include "enemy.h"
 #include "block.h"
+#include "camera.h"
+#include <vec.h>
 #include "texture.h"
 #include "textures.h"
-#include "constants.h"
+#include "sprite_sheet.h"
+#include "tile.h"
+#include "animation.h"
 
 bool isRunning;
 World *world;
@@ -92,7 +94,6 @@ int main(int argc, char const *argv[])
     world = World_new();
     player = Player_new();
     World_addGameObject(world, player->gameObject);
-    Level_init();
     Block_init();
     Block_generateRandom();
     Enemy_generateRandom();

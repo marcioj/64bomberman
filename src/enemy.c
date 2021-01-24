@@ -15,17 +15,16 @@ static float movingSpeed = 30;
 
 static void removeEnemy(Animation *animation)
 {
-    World_removeGameObject(world, animation->gameObject);
+    World_removeGameObject(world, (GameObject *)animation->caller);
 }
 
-// play death animation in 2 steps to have a different animation time between them
-void playDeathAnimation2(Animation *current)
+static void Enemy_render(GameObject *obj)
 {
-    Animation *animation = GameObject_playAnimation(current->gameObject, 3); // death 2
-    animation->onFinish = removeEnemy;
+    Animation *currentAnimation = &obj->animations[obj->currentAnimationIndex];
+    Animation_render(currentAnimation, obj->x - camera.bgPositionX, obj->y - camera.bgPositionY + SCREEN_TOP_OFFSET);
 }
 
-void Enemy_handleCollisionEnter(GameObject *self, GameObject *collided)
+static void Enemy_handleCollisionEnter(GameObject *self, GameObject *collided)
 {
     if (collided->type == GAME_OBJECT_BOMB)
     {
@@ -34,8 +33,7 @@ void Enemy_handleCollisionEnter(GameObject *self, GameObject *collided)
         if (bomb->state == BOMB_STATE_EXPLODING && enemy->isAlive)
         {
             enemy->isAlive = false;
-            Animation *animation = GameObject_playAnimation(self, 2); // death 1
-            animation->onFinish = playDeathAnimation2;
+            GameObject_playAnimation(self, 2); // death
         }
     }
 }
@@ -64,7 +62,7 @@ static void moveDown(Enemy *enemy)
     enemy->moveY = 1;
 }
 
-void Enemy_update(GameObject *gameObject, float dt)
+static void Enemy_update(GameObject *gameObject, float dt)
 {
     Enemy *enemy = (Enemy *)gameObject->data;
     if (!enemy->isAlive)
@@ -174,38 +172,65 @@ Enemy *Enemy_new()
     obj->zIndex = 1;
     obj->data = enemy;
     obj->update = Enemy_update;
+    obj->render = Enemy_render;
     obj->onCollisionEnter = Enemy_handleCollisionEnter;
 
-    int animationsSize = 4;
-    Animation *animations = malloc(sizeof(Animation) * animationsSize);
-    for (size_t i = 0; i < animationsSize; i++)
+    int animationsCount = 3;
+    Animation *animations = malloc(sizeof(Animation) * animationsCount);
+    AnimationStep *steps = NULL;
+    Tile *tiles = NULL;
+    for (size_t i = 0; i < animationsCount; i++)
     {
         Animation_init(animations + i);
-        animations[i].texture = spritesheet;
-        animations[i].speed = 0.3f;
-        animations[i].spriteRow = 15;
+        animations[i].iterationCount = -1;
+        animations[i].automatic = false;
     }
     // facing right
-    animations[0].steps = 3;
-    animations[0].spriteCol = 0;
+    steps = malloc(sizeof(AnimationStep) * 3);
+    tiles = malloc(sizeof(Tile) * 3);
+    for (size_t i = 0; i < 3; i++)
+    {
+        tiles[i].row = 15;
+        tiles[i].col = i;
+        tiles[i].sheet = spritesheet;
+        steps[i].timeMs = 0.3f;
+        steps[i].tile = &tiles[i];
+        steps[i].texture = NULL;
+    }
+    animations[0].stepsCount = 3;
+    animations[0].steps = steps;
     // facing left
-    animations[1].steps = 3;
-    animations[1].spriteCol = 3;
-    // we have 2 death animations because the first frame should take longer
-    // TODO: the animation API should support a way to compose multiple animations
-    // death 1
-    animations[2].steps = 1;
-    animations[2].spriteCol = 6;
-    animations[2].defaultStep = -1;
-    animations[2].speed = 1;
+    steps = malloc(sizeof(AnimationStep) * 3);
+    tiles = malloc(sizeof(Tile) * 3);
+    for (size_t i = 0; i < 3; i++)
+    {
+        tiles[i].row = 15;
+        tiles[i].col = i + 3;
+        tiles[i].sheet = spritesheet;
+        steps[i].timeMs = 0.3f;
+        steps[i].tile = &tiles[i];
+        steps[i].texture = NULL;
+    }
+    animations[1].stepsCount = 3;
+    animations[1].steps = steps;
+    // death
+    steps = malloc(sizeof(AnimationStep) * 5);
+    tiles = malloc(sizeof(Tile) * 5);
+    for (size_t i = 0; i < 5; i++)
+    {
+        tiles[i].row = 15;
+        tiles[i].col = i + 6;
+        tiles[i].sheet = spritesheet;
+        steps[i].timeMs = 0.3f;
+        steps[i].tile = &tiles[i];
+        steps[i].texture = NULL;
+    }
+    steps[0].timeMs = 1.0f;
+    animations[2].stepsCount = 5;
+    animations[2].steps = steps;
     animations[2].automatic = true;
     animations[2].iterationCount = 1;
-    // death 2
-    animations[3].steps = 4;
-    animations[3].spriteCol = 7;
-    animations[3].defaultStep = -1;
-    animations[3].automatic = true;
-    animations[3].iterationCount = 1;
     obj->animations = animations;
+    obj->animationsCount = animationsCount;
     return enemy;
 }

@@ -3,9 +3,14 @@
 
 #include <stdbool.h>
 #include "texture.h"
+#include "tile.h"
 
-typedef struct Animation Animation;
-typedef struct GameObject GameObject;
+typedef struct AnimationStep
+{
+    float timeMs;
+    Texture *texture;
+    Tile *tile;
+} AnimationStep;
 
 typedef enum AnimationDirection
 {
@@ -13,29 +18,25 @@ typedef enum AnimationDirection
     ANIMATION_DIRECTION_ALTERNATE,
 } AnimationDirection;
 
+typedef struct Animation Animation;
+
 typedef struct Animation
 {
     AnimationDirection direction;
-    GameObject *gameObject;
-    TEXTURE *texture;
-    int spriteCol;
-    int spriteRow;
+    AnimationStep *steps;
+    void *caller;
+    int stepsCount;
     int currentStep;
-    int steps;
     // default step to show when animation is not playing
     // -1 will not render anything
     int defaultStep;
-    // speed in ticks to change steps
-    float speed;
-    bool active;
-    // if true you just need to call GameObject_playAnimation once to play the animation
-    // otherwise GameObject_playAnimation should be called every frame
-    // TODO: this is only used to handle player movement and stop the animation when no button is pressed
-    // maybe instead of using this flag, it should be automatic by default and instead we should have an Animation_stop method?
+    bool playing;
+    // if true you just need to call Animation_play once to play the animation
+    // otherwise Animation_play should be called on every frame
     bool automatic;
     // number of times to play the animation or -1 to infinity
     int iterationCount;
-    // callback which is called when the animation finished. animation is finished when iterationCount is zero
+    // callback which is called when the animation finish. animation is finished when iterationCount reaches zero
     void (*onFinish)(Animation *self);
     // private
     int _stepChangeRate;
@@ -50,5 +51,9 @@ void Animation_init(Animation *animation);
 void Animation_render(Animation *animation, int x, int y);
 
 void Animation_update(Animation *animation, float dt);
+
+void Animation_reset(Animation *animation);
+
+void Animation_play(Animation *animation);
 
 #endif

@@ -31,10 +31,10 @@ void initStage00()
 {
     srand(osGetTime());
     Textures_init();
+    Clock_nextTick();
     world = World_new();
     player = Player_new();
     World_addGameObject(world, player->gameObject);
-    Level_init();
     Block_init();
     Block_generateRandom();
     Enemy_generateRandom();
