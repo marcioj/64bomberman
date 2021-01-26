@@ -44,7 +44,6 @@ void initStage00()
 void updateGame00(float dt)
 {
     World_update(world, dt);
-    Block_update(dt);
 #ifdef CONSOLE
     screen_printf("console build\n");
 #else

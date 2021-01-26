@@ -8,7 +8,7 @@
 #include "textures.h"
 #include "grid.h"
 
-Animation *defaultAnimation;
+static Tile blockTile;
 
 static void renderAnimation(GameObject *obj)
 {
@@ -46,7 +46,9 @@ Animation *createAnimation()
 
 void Block_init()
 {
-    defaultAnimation = createAnimation();
+    blockTile.row = 3;
+    blockTile.col = 4;
+    blockTile.sheet = spritesheet;
 }
 
 void Block_generateRandom()
@@ -78,11 +80,6 @@ void Block_generateRandom()
     }
 }
 
-void Block_update(float dt)
-{
-    Animation_update(defaultAnimation, dt);
-}
-
 void Block_render()
 {
     for (size_t col = 0; col < GRID_COLS; col++)
@@ -93,7 +90,7 @@ void Block_render()
             {
                 int x = Grid_gridToCoord(col);
                 int y = Grid_gridToCoord(row);
-                Animation_render(defaultAnimation, x - camera.bgPositionX, y - camera.bgPositionY + SCREEN_TOP_OFFSET);
+                Tile_render(&blockTile, x - camera.bgPositionX, y - camera.bgPositionY + SCREEN_TOP_OFFSET);
             }
         }
     }

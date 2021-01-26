@@ -11,6 +11,4 @@ void Block_remove(float x, float y);
 
 void Block_render();
 
-void Block_update(float dt);
-
 #endif

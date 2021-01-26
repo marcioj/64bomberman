@@ -110,7 +110,6 @@ int main(int argc, char const *argv[])
 
         processInput();
         World_update(world, dt);
-        Block_update(dt);
 
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
         SDL_RenderClear(renderer);
