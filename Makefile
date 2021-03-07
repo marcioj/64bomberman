@@ -8,8 +8,8 @@ NUSYSINCDIR = $(N64_INC)/nusys
 NUSYSLIBDIR = $(N64_LIB)/nusys
 NUSTDINCDIR = $(N64_INC)/nustd
 
-CC = mips64-elf-gcc
-LD = mips64-elf-ld
+CC = mips-n64-gcc
+LD = mips-n64-ld
 
 CDEFS = -DALIGNED8='__attribute((aligned(8)))' -D_MIPS_SZLONG=32 -D_MIPS_SZINT=32 -D_LANGUAGE_C -D_ULTRA64 -D__EXTENSIONS__ -DNU_DEBUG -DF3DEX_GBI_2
 COPTS = -ffreestanding -fno-PIC -mabi=32 -mno-shared -mno-abicalls -march=vr4300 -mtune=vr4300 -mfix4300 -G 0 -g -MMD -MP \
@@ -39,7 +39,7 @@ $(CODESEGMENT):	$(CODEOBJECTS) Makefile
 	$(LD) -o $(CODESEGMENT) -r $(CODEOBJECTS) $(LDFLAGS)
 
 $(ROM):	$(CODESEGMENT)
-	spicy spec -I$(NUSYSINCDIR) -r $(ROM) -s 9 -e $(GAME).out
+	spicy spec --toolchain-prefix=mips-n64- -I$(NUSYSINCDIR) -r $(ROM) -s 9 -e $(GAME).out
 	makemask $(ROM)
 
 clean:
